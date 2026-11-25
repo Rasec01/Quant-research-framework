@@ -1,8 +1,9 @@
 """
 Fama-French factor-tilt research.
 
-    python main.py                                  # equal tilts, 1973 onwards
-    python main.py --method mv --total-tilt 0.6 --chart outputs/tilt.png
+    python main.py                                  # walk-forward max-Sharpe tilts, 1973 onwards
+    python main.py --method equal                   # fixed equal tilts only
+    python main.py --total-tilt 0.6 --chart outputs/tilt.png
     python main.py --start 2000-01 --trade-cost 0.002 --carry-cost 0.01
 """
 import argparse
@@ -15,7 +16,7 @@ from src.strategy import run, summary, tilt_weights
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--method", choices=["equal", "mv"], default="equal")
+    p.add_argument("--method", choices=["equal", "mv"], default="mv")
     p.add_argument("--total-tilt", type=float, default=0.5, help="sum of long-short factor weights")
     p.add_argument("--window", type=int, default=120, help="months of history used for each decision")
     p.add_argument("--shrink", type=float, default=0.5, help="'mv' only: pull towards equal tilts (0-1)")
@@ -35,14 +36,24 @@ def main():
         res = res.loc[a.start:]
 
     print(f"\nFactor tilt ({a.method}, total tilt {a.total_tilt}) vs market, "
-          f"{res.index[0]:%Y-%m} → {res.index[-1]:%Y-%m}, after costs:")
-    print(summary(res).round(4).to_string())
+          f"{res.index[0]:%Y-%m} to {res.index[-1]:%Y-%m}, after costs:")
+    table = summary(res)
+    if a.method != "equal":
+        # Baseline: the same total tilt spread equally, so the table shows what the walk-forward choice adds.
+        base = run(ff, tilt_weights(ff, "equal", a.total_tilt, a.window), a.trade_cost, a.carry_cost).loc[res.index]
+        table.insert(1, "Equal tilt", summary(base)["Factor tilt"])
+    print(table.round(4).to_string())
     print("\nAverage tilt weights:")
     print(w.loc[res.index].mean().round(3).to_string())
 
-    reg = factor_regression(res["strategy"] - res["rf"], ff[["Mkt-RF"] + FACTORS])
-    print(f"\nFive-factor regression of the strategy (R² {reg.attrs['r2']:.3f}, {reg.attrs['months']} months):")
-    print(reg.round(4).to_string())
+    if a.method == "equal":
+        # Fixed tilts are an exact mix of the factors, so a factor regression would only give the weights back.
+        print("\nNo factor regression: with fixed tilts it would just return the weights above.")
+    else:
+        reg = factor_regression(res["strategy"] - res["rf"], ff[["Mkt-RF"] + FACTORS])
+        print(f"\nFive-factor regression of the strategy (R-squared {reg.attrs['r2']:.3f}, {reg.attrs['months']} months).")
+        print("Alpha is what the month-by-month choice of tilts adds beyond average factor exposure, after costs:")
+        print(reg.round(4).to_string())
 
     if a.chart:
         import matplotlib.pyplot as plt

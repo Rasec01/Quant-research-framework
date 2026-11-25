@@ -19,8 +19,9 @@ This is the approach I used to tilt client portfolios towards factors at St. Jam
 
 ```bash
 pip install -r requirements.txt
-python main.py                                       # equal tilts
-python main.py --method mv --total-tilt 0.6 --chart outputs/tilt.png
+python main.py                                       # walk-forward max-Sharpe tilts, compared with equal tilts
+python main.py --method equal                        # fixed equal tilts only
+python main.py --total-tilt 0.6 --chart outputs/tilt.png
 python main.py --start 2000-01 --trade-cost 0.002 --carry-cost 0.01
 ```
 
@@ -32,7 +33,22 @@ python main.py --start 2000-01 --trade-cost 0.002 --carry-cost 0.01
 
 ## Results
 
-Run `python main.py --method mv --chart outputs/tilt.png` and paste the tables and chart here.
+Ken French five-factor data, monthly. The first ten years are used only to choose weights, so results run from July 1973 to September 2026. Both portfolios hold the market plus long-short factor positions with a total tilt of 0.5. Costs are 0.1% per unit of tilt turnover and 0.5% a year per unit of tilt held.
+
+| | Walk-forward tilts | Equal tilts | Market |
+|---|---|---|---|
+| Annual return | 12.8% | 13.0% | 11.6% |
+| Annual volatility | 15.5% | 15.5% | 15.8% |
+| Sharpe ratio | 0.58 | 0.59 | 0.50 |
+| Maximum drawdown | -49.7% | -50.4% | -50.3% |
+| Tracking error | 2.6% | 2.6% | |
+| Information ratio | 0.39 | 0.47 | |
+
+Five-factor regression of the walk-forward portfolio (Newey-West t-statistics, 639 months): alpha of -0.54% a year (t = -3.2); loadings of 1.00 on the market, 0.10 on size, 0.08 on value, 0.20 on profitability and 0.13 on investment.
+
+Holding the factors added about 1.2 to 1.4 points a year over the market with the same volatility and drawdown. Choosing the tilts each month from the past ten years did not help: it trailed simple equal tilts, and its negative alpha says the month-to-month changes cost money after costs. The factor returns come from paper portfolios, so the cost assumptions matter; higher costs would shrink the gap over the market.
+
+![Factor tilt against the market](docs/tilt.png)
 
 ## Tests
 

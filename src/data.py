@@ -46,5 +46,5 @@ def load_ff5(cache: Optional[str] = "data/ff5_monthly.csv") -> pd.DataFrame:
     if cache:
         Path(cache).parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(cache)
-    print(f"[data] Fama-French 5 factors, {df.index[0]:%Y-%m} → {df.index[-1]:%Y-%m}")
+    print(f"[data] Fama-French 5 factors, {df.index[0]:%Y-%m} to {df.index[-1]:%Y-%m}")
     return df
